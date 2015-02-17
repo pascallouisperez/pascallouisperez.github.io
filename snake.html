@@ -1,0 +1,189 @@
+<html>
+<style>
+.empty {
+  background-color: #CCCCCC;
+}
+.snake {
+  background-color: #0000CC;
+}
+.apple {
+  background-color: #00CC00;
+}
+</style>
+<script>
+var GRID_SIZE = 14;
+var GAME_INTERVAL = 400;
+
+var D_UP = 38;
+var D_DOWN = 40;
+var D_LEFT = 37;
+var D_RIGHT = 39
+
+var current_x = 0;
+var current_y = 0;
+var current_d = D_DOWN;
+
+var snake_length = 1;
+var snake_xs = [];
+var snake_ys = [];
+
+var apple_xs = [];
+var apple_ys = [];
+var apple_num = 4;
+
+function cell(x, y, className) {
+  document.getElementById('' + x + '_' + y).className = className;
+}
+
+function init() {
+  current_x = 0;
+  current_y = 0;
+  current_d = D_DOWN;
+  snake_length = 1;
+  for (var i = 0; i < snake_xs.length; i++) {
+    cell(snake_xs[i], snake_ys[i], 'empty');
+  }
+  snake_xs = [0];
+  snake_ys = [0];
+  cell(0, 0, 'snake');
+  while (apple_xs.length > 0) {
+    cell(apple_xs.shift(), apple_ys.shift(), 'empty');
+  }
+  place_apples();
+}
+
+function draw(new_x, new_y) {
+  if (!(new_x == current_x && new_y == current_y)) {
+    // snake
+    var old_x = snake_xs[0];
+    var old_y = snake_ys[0];
+    if (snake_xs.length >= snake_length) {
+      snake_xs.shift();
+      snake_ys.shift();
+      cell(old_x, old_y, 'empty');
+    }
+    snake_xs.push(new_x);
+    snake_ys.push(new_y);
+    cell(new_x, new_y, 'snake');
+
+    current_x = new_x;
+    current_y = new_y;
+  }
+}
+
+function move(direction) {
+  var new_x = current_x;
+  var new_y = current_y;
+
+  if (direction == D_DOWN) {
+    new_y = new_y + 1;
+  }
+  if (direction == D_UP) {
+    new_y = new_y - 1;
+  }
+  if (direction == D_RIGHT) {
+    new_x = new_x + 1;
+  }
+  if (direction == D_LEFT) {
+    new_x = new_x - 1;
+  }
+
+  // clip to grid
+  if (new_y >= GRID_SIZE) {
+    new_y = GRID_SIZE - 1;
+  }
+  if (new_y < 0) {
+    new_y = 0;
+  }
+  if (new_x >= GRID_SIZE) {
+    new_x = GRID_SIZE - 1;
+  }
+  if (new_x < 0) {
+    new_x = 0;
+  }
+
+  // prevent eating your own tail
+  var i;
+  for (i = 0; i < snake_xs.length; i++) {
+    if (new_x == snake_xs[i] && new_y == snake_ys[i]) {
+      init();
+      return;
+    }
+  }
+
+  // eating an apple
+  for (i = 0; i < apple_xs.length; i++) {
+    if (new_x == apple_xs[i] && new_y == apple_ys[i]) {
+      snake_length++;
+      apple_xs.splice(i, 1);
+      apple_ys.splice(i, 1);
+    }
+  }
+
+  draw(new_x, new_y);
+}
+
+function keypress(event) {
+  var new_d = event.keyCode;
+  if (
+    (current_d == D_UP && new_d == D_DOWN) ||
+    (current_d == D_DOWN && new_d == D_UP) ||
+    (current_d == D_LEFT && new_d == D_RIGHT) ||
+    (current_d == D_RIGHT && new_d == D_LEFT)
+    ) {
+    return;
+  }
+  current_d = new_d;
+  move(current_d);
+}
+
+function place_apples() {
+  var apple_location, apple_x, apple_y, bad_apple, i;
+  while (apple_xs.length < apple_num) {
+    apple_location = Math.round(Math.random() * GRID_SIZE * GRID_SIZE);
+    apple_x = apple_location % GRID_SIZE;
+    apple_y = (apple_location - apple_x) / GRID_SIZE;
+    bad_apple = false;
+    for (i = 0; i < snake_xs.length; i++) {
+      if (apple_x == snake_xs[i] && apple_y == snake_ys[i]) {
+        bad_apple = true;
+        break;
+      }
+    }
+    if (!bad_apple) {
+      apple_xs.push(apple_x);
+      apple_ys.push(apple_y);
+      cell(apple_x, apple_y, 'apple');
+    }
+  }
+}
+
+function gameLoop() {
+  place_apples();
+  move(current_d);
+}
+
+function grid() {
+  var g = [];
+  var i, j;
+  for (i = 0; i < GRID_SIZE; i++) {
+    for (j = 0; j < GRID_SIZE; j++) {
+      g.push('<div class="empty"');
+      g.push(' id="');
+      g.push(j, '_', i);
+      g.push('" style="position: absolute; height: 20px; width: 20px; top: ');
+      g.push(i * 21);
+      g.push('px; left: ');
+      g.push(j * 21);
+      g.push('px;"></div>');
+    }
+  }
+  document.body.innerHTML = g.join('');
+  document.onkeydown = keypress;
+  setInterval(gameLoop, GAME_INTERVAL);
+  init();
+}
+</script>
+<body onload="grid()">
+</body>
+</html>
